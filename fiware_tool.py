@@ -126,34 +126,31 @@ class FiwareClient:
         return list(self.mqtt_history.values())
 
     def check_mqtt_broker(self) -> bool:
-
-        def on_connect(client, userdata, flags, rc, properties=None):
-            if rc == 0:
-                logger.info("✅ MQTT broker connection successful!")
-                client.connected_flag = True
-            else:
-                client.connected_flag = False
-
-        mqtt.Client.connected_flag = False # type: ignore
-        self.mqtt.on_connect = on_connect
-
+        probe = mqtt.Client(callback_api_version=CallbackAPIVersion.VERSION2)
         try:
             parsed = urlparse(self.config.mqtt_broker_url)
             host = parsed.hostname or "localhost"
             port = parsed.port or 1883
 
-            if not self.mqtt.is_connected():
-                self.mqtt.connect(host, port)
-                self.mqtt.loop_start()
+            probe.connect(host, port, keepalive=5)
+            probe.loop_start()
 
-            self.subscribe_topic("#")
-            for _ in range(10):
-                if self.mqtt.is_connected():
-                    return True
-                time.sleep(0.5)
-            raise RuntimeError("❌ MQTT broker connection failed: Timeout")
+            deadline = time.monotonic() + 5
+            while not probe.is_connected() and time.monotonic() < deadline:
+                time.sleep(0.1)
+
+            if not probe.is_connected():
+                raise RuntimeError("Timeout")
+            return True
         except Exception as e:
             raise RuntimeError(f"❌ MQTT broker connection failed: {e}")
+        finally:
+            try:
+                if probe.is_connected():
+                    probe.disconnect()
+                probe.loop_stop()
+            except Exception:
+                pass
 
     def check_orion(self) -> Dict[str, Any]:
         url = f"{self.config.orion_url}/version"
@@ -230,15 +227,20 @@ class FiwareClient:
         rows = data.get("rows", [])
         return [dict(zip(columns, row)) for row in rows]
     
-    def list_subscriptions(self):
+    def list_subscriptions(self) -> List[Dict[str, Any]]:
         url = f"{self.config.orion_url}/v2/subscriptions"
         resp = self._request("GET", url, headers=self.config.fiware_headers)
-        return self._safe_json(resp)
+        self._raise_for_status(resp, "Failed to list subscriptions")
+        data = self._safe_json(resp)
+        if not isinstance(data, list):
+            raise RuntimeError(f"Unexpected subscription response: {data!r}")
+        return data
 
-    def create_subscription(self, payload):
+    def create_subscription(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.config.orion_url}/v2/subscriptions"
         resp = self._request("POST", url, headers=self.config.fiware_json_headers, json=payload)
-        return resp
+        self._raise_for_status(resp, "Failed to create subscription")
+        return self._safe_json(resp)
 
     def delete_subscription(self, sub_id):
         url = f"{self.config.orion_url}/v2/subscriptions/{sub_id}"
@@ -272,30 +274,34 @@ class FiwareClient:
         results: List[Dict[str, Any]] = []
         offset = 0
 
-        # while True:
-        params: Dict[str, Any] = {
-            "limit": limit,
-            "offset": offset,
-            "options": "keyValues",
-        }
-        if entity_type:
-            params["type"] = entity_type
-        if id_pattern:
-            params["idPattern"] = id_pattern
-        if attrs:
-            params["attrs"] = attrs
+        while len(results) < limit:
+            page_limit = min(100, limit - len(results))
+            params: Dict[str, Any] = {
+                "limit": page_limit,
+                "offset": offset,
+                "options": "keyValues",
+            }
+            if entity_type:
+                params["type"] = entity_type
+            if id_pattern:
+                params["idPattern"] = id_pattern
+            if attrs:
+                params["attrs"] = attrs
 
-        url = f"{self.config.orion_url}/v2/entities"
-        resp = self._request("GET", url, headers=self.config.fiware_headers, params=params)
-        logger.info("Query: type=%s, idPattern=%s, offset=%d, limit=%d -> Status %d", entity_type, id_pattern, offset, limit, resp.status_code)
-        self._raise_for_status(resp, "Failed to list entities")
-        batch = self._safe_json(resp)
-        if not isinstance(batch, list):
-            raise RuntimeError(f"Unexpected Orion response for entity listing: {batch!r}")
-        results.extend(batch)
-            # if len(batch) < limit:
-            #     break
-            # offset += limit
+            url = f"{self.config.orion_url}/v2/entities"
+            resp = self._request("GET", url, headers=self.config.fiware_headers, params=params)
+            logger.info("Query: type=%s, idPattern=%s, offset=%d, limit=%d -> Status %d", entity_type, id_pattern, offset, page_limit, resp.status_code)
+            self._raise_for_status(resp, "Failed to list entities")
+            batch = self._safe_json(resp)
+            if not isinstance(batch, list):
+                raise RuntimeError(f"Unexpected Orion response for entity listing: {batch!r}")
+            if not batch:
+                break
+            results.extend(batch)
+            if len(batch) < page_limit:
+                break
+            offset += len(batch)
+
         return results
 
     def get_entity(self, entity_id: str, entity_type: Optional[str] = None) -> Dict[str, Any]:
@@ -337,11 +343,32 @@ class FiwareClient:
         resp = self._request("DELETE", url, headers=self.config.fiware_headers, params=params)
         self._raise_for_status(resp, f"Failed to delete entity {entity_id}")
 
-    def delete_registration_by_entity(self, entity_id: str, entity_type: Optional[str] = None):
+    def delete_registration_by_entity(self, entity_id: str, entity_type: Optional[str] = None) -> bool:
+        """Legacy compatibility method.
+
+        For safety reasons this method no longer deletes registrations automatically,
+        because one registration may contain multiple entities.
+        """
+        matched = self.get_registration_ids_by_entity(entity_id, entity_type)
+        if matched:
+            logger.warning(
+                "Registration auto-delete skipped for entity=%s type=%s; matched registrations=%s",
+                entity_id,
+                entity_type,
+                ",".join(matched),
+            )
+        return False
+
+    def get_registration_ids_by_entity(self, entity_id: str, entity_type: Optional[str] = None) -> List[str]:
         # 1. Fetch all registrations
         url_list = f"{self.config.orion_url}/v2/registrations"
         resp = self._request("GET", url_list, headers=self.config.fiware_headers)
-        registrations = resp.json()
+        self._raise_for_status(resp, "Failed to list registrations")
+        registrations = self._safe_json(resp)
+        if not isinstance(registrations, list):
+            raise RuntimeError(f"Unexpected registration response: {registrations!r}")
+
+        matched_registration_ids: List[str] = []
 
         # 2. Find the matching registration
         for reg in registrations:
@@ -353,10 +380,10 @@ class FiwareClient:
                 
                 if id_match and type_match:
                     reg_id = reg.get("id")
-                    del_url = f"{self.config.orion_url}/v2/registrations/{reg_id}"
-                    self._request("DELETE", del_url, headers=self.config.fiware_headers)
-                    return True
-        return False
+                    if reg_id:
+                        matched_registration_ids.append(reg_id)
+                    break
+        return matched_registration_ids
 
     def list_service_groups(self) -> Dict[str, Any]:
         url = f"{self.config.iota_url}/iot/services"

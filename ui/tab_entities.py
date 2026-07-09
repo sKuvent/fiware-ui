@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 from fiware_tool import filter_entities
 
 
@@ -13,6 +14,21 @@ def get_cached_types_and_ids(_client):
         return sorted(list(unique_types)), sorted(list(available_ids))
     except Exception as e:
         return [], []
+
+
+def parse_attribute_value(raw_value: str, attribute_type: str):
+    if attribute_type in {"Number", "Float", "Double"}:
+        return float(raw_value)
+    if attribute_type == "Integer":
+        return int(raw_value)
+    if attribute_type == "Boolean":
+        normalized = raw_value.strip().lower()
+        if normalized not in {"true", "false"}:
+            raise ValueError("Boolean value must be 'true' or 'false'.")
+        return normalized == "true"
+    if attribute_type in {"StructuredValue", "geo:json"}:
+        return json.loads(raw_value)
+    return raw_value
 
 def render(client, cfg):
     st.info(
@@ -138,13 +154,22 @@ def render(client, cfg):
                             )
                     if st.button("💾 Save changes", key=f"save_ent_{i}", type="primary"):
                         try:
-                            patch_payload = {
-                                k: {"value": v, "type": ent[k].get("type")}
-                                for k, v in updated_vals.items()
-                                if isinstance(ent.get(k), dict)
-                            }
+                            patch_payload = {}
+                            for k, v in updated_vals.items():
+                                if not isinstance(ent.get(k), dict):
+                                    continue
+                                attr_type = ent[k].get("type", "Text")
+                                patch_payload[k] = {
+                                    "value": parse_attribute_value(v, attr_type),
+                                    "type": attr_type,
+                                }
+
                             client.patch_entity(ent_id, patch_payload)
                             st.success("✅ Entity updated successfully!")
+                        except json.JSONDecodeError:
+                            st.error("Invalid JSON value for StructuredValue/geo:json attribute.")
+                        except ValueError as e:
+                            st.error(f"Invalid value type: {e}")
                         except Exception as e:
                             st.error(f"Error while saving: {e}")
 
@@ -181,8 +206,8 @@ def render(client, cfg):
             # ── Tab: Delete ──
             with sub_tabs[3]:
                 st.warning(
-                    "⚠️ **Warning:** Deleting removes the entity permanently from Orion Broker "
-                    "as well as the related registration. Historical data in CrateDB remains available."
+                    "⚠️ **Warning:** Deleting removes the entity permanently from Orion Broker. "
+                    "Registrations are not deleted automatically. Historical data in CrateDB remains available."
                 )
                 confirm_key = f"confirm_delete_{i}"
                 confirmed = st.checkbox(
@@ -193,7 +218,6 @@ def render(client, cfg):
                     if st.button("🗑️ Delete permanently", key=f"del_ent_{i}", type="primary"):
                         try:
                             client.delete_entity(ent_id, entity_type=ent_type)
-                            client.delete_registration_by_entity(ent_id, entity_type=ent_type)
                             st.session_state.found_entities.pop(i)
                             st.success(f"✅ Entity `{ent_id}` was deleted.")
                             st.rerun()

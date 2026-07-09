@@ -1,6 +1,6 @@
 # FIWARE UI
 
-Streamlit dashboard for operating and monitoring a FIWARE stack (Orion, IoT Agent, CrateDB, MQTT, QuantumLeap Proxy) in a generic environment.
+Streamlit dashboard for operating and monitoring a FIWARE stack (IoT Agent, Orion,CrateDB) in a generic environment.
 
 ## Features
 
@@ -13,7 +13,7 @@ Streamlit dashboard for operating and monitoring a FIWARE stack (Orion, IoT Agen
 
 ## Tech Stack
 
-- Python 3.10+
+- Python 3.14+
 - Streamlit
 - streamlit-authenticator
 - requests

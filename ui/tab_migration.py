@@ -221,27 +221,63 @@ def render(client, cfg):
                 errors = []
                 with st.status("Running migration …", expanded=True) as status:
                     try:
+                        if (do_delete_sg or do_delete_ent) and not do_create:
+                            raise RuntimeError(
+                                "Destructive migration steps require creating and verifying the new Service Group first."
+                            )
+
+                        created_successfully = not do_create
+
                         if do_create:
                             st.write("➕ Creating new Service Group …")
                             try:
+                                attrs_payload = json.loads(new_attrs_json)
+                                static_payload = json.loads(new_static_json)
+                                commands_payload = json.loads(new_cmds_json)
+
                                 client.create_service_group(
-                                    apikey,
-                                    entity_type,
-                                    prefix,
-                                    json.loads(new_attrs_json),
-                                    json.loads(new_static_json),
-                                    json.loads(new_cmds_json),
+                                    apikey=apikey,
+                                    entity_type=entity_type,
+                                    entity_name_exp=prefix,
+                                    attributes=attrs_payload,
+                                    static_attributes=static_payload,
+                                    commands=commands_payload,
+                                    resource=sg_data.get("resource", "/iot/json"),
+                                    timezone=sg_data.get("timezone", "Europe/Berlin"),
                                 )
+
+                                # Verify the created Service Group exists before allowing destructive actions.
+                                all_services = client.list_service_groups().get("services", [])
+                                created_successfully = any(
+                                    s.get("apikey") == apikey
+                                    and s.get("resource", "/iot/json") == sg_data.get("resource", "/iot/json")
+                                    for s in all_services
+                                )
+
+                                if not created_successfully:
+                                    raise RuntimeError(
+                                        "The new Service Group could not be verified after creation. "
+                                        "Destructive migration steps were aborted."
+                                    )
                                 st.write("✅ New Service Group created.")
                             except json.JSONDecodeError:
                                 errors.append("Invalid JSON in attributes/commands.")
                             except Exception as e:
                                 errors.append(f"Create Service Group: {e}")
 
+                        if not created_successfully:
+                            raise RuntimeError(
+                                "The new Service Group could not be created. "
+                                "Destructive migration steps were aborted."
+                            )
+
                         if do_delete_sg:
                             st.write("🗑️ Deleting existing Service Group …")
                             try:
-                                client.delete_service_group(sg_data.get("apikey"))
+                                client.delete_service_group(
+                                    apikey=sg_data.get("apikey"),
+                                    resource=sg_data.get("resource", "/iot/json"),
+                                )
                                 st.write("✅ Existing Service Group deleted.")
                             except Exception as e:
                                 errors.append(f"Delete Service Group: {e}")
@@ -251,7 +287,6 @@ def render(client, cfg):
                             for eid in plan["ids"]:
                                 try:
                                     client.delete_entity(eid, entity_type=sg_data.get("entity_type"))
-                                    client.delete_registration_by_entity(eid, entity_type=sg_data.get("entity_type"))
                                 except Exception as e:
                                     errors.append(f"Entity `{eid}`: {e}")
                             if not errors:

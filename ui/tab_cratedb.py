@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from datetime import datetime
 
 
@@ -172,9 +173,23 @@ def render(client, cfg):
             key="sql_query_input",
         )
 
+        destructive_pattern = re.compile(r"^\s*(DELETE|UPDATE|DROP|ALTER|TRUNCATE|INSERT|CREATE)\b", re.IGNORECASE)
+        is_destructive_query = bool(destructive_pattern.search(sql_query or ""))
+        if is_destructive_query:
+            st.error(
+                "Destructive SQL detected. Confirm explicitly before execution."
+            )
+            st.checkbox(
+                "I understand this query can modify or delete data.",
+                key="confirm_destructive_sql",
+            )
+
         col_run, col_link = st.columns([2, 1])
         with col_run:
             if st.button("▶️ Run query", type="primary", use_container_width=True, key="run_sql_btn"):
+                if is_destructive_query and not st.session_state.get("confirm_destructive_sql", False):
+                    st.error("Confirmation required for destructive SQL queries.")
+                    return
                 with st.spinner("Running query …"):
                     try:
                         results = client.execute_crate_query(sql_query)

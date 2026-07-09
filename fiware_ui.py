@@ -31,7 +31,7 @@ if not ADMIN_PASSWORD_HASH or not COOKIE_KEY or not ADMIN_EMAIL:
         "DASHBOARD_ADMIN_PASSWORD_HASH, DASHBOARD_COOKIE_KEY and DASHBOARD_ADMIN_EMAIL must be set as "
         "environment variables (see .env / docker-compose.yml)."
     )
-    sys.exit(1)
+    st.stop()
 
 credentials = {
     "usernames": {

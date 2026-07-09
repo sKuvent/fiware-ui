@@ -1,27 +1,28 @@
-# Lightweight Python image as base
-FROM python:3.14-slim
+FROM python:3.13-slim-bookworm
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Pin the uv version instead of using latest in production.
+COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /uvx /bin/
 
-# Working directory inside the container
 WORKDIR /app
 
-# Copy and install dependencies
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
-# Copy all code
+# Install dependencies in a separate cached layer.
+COPY pyproject.toml uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
+
 COPY . .
 
-# Expose the Streamlit port
+# Run as non-root user
+RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE 8501
 
-# Healthcheck to see if the dashboard is running
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" || exit 1
 
-# Start command
-ENTRYPOINT ["streamlit", "run", "fiware_ui.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["/app/.venv/bin/streamlit", "run", "fiware_ui.py", "--server.port=8501", "--server.address=0.0.0.0"]

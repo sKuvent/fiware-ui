@@ -9,7 +9,7 @@ dependencies = [
     "streamlit-authenticator==0.4.2",
     "requests==2.33.1",
     "pandas==3.0.2",
-    "matplotlib==3.10.9",
+    "matplotlib==3.11.2",
     "graphviz==0.21",
     "paho-mqtt==2.1.0",
 ]

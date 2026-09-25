@@ -1,9 +1,5 @@
 # FIWARE UI
 
-<p align="center">
-  <img src="fiware_logo.png" alt="FIWARE UI" width="220">
-</p>
-
 A lightweight **operations and administration dashboard for FIWARE**, built with Streamlit.
 
 FIWARE UI provides a single web interface for common operational tasks across a FIWARE stack, including **Orion Context Broker, IoT Agent, QuantumLeap, CrateDB, MQTT, and Portainer**.

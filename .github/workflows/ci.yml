@@ -33,6 +33,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format check
+        run: uv run ruff format --check .
+
       - name: Compile Python sources
         run: uv run python -m compileall -q fiware_ui.py fiware_tool.py ui
 

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<defs>
+  <linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#0ea5a8"/></linearGradient>
+  <filter id="s"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity=".10"/></filter>
+  <marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+  <style>
+    .t{font:700 32px system-ui,sans-serif;fill:#0f172a}.st{font:400 16px system-ui,sans-serif;fill:#64748b}
+    .bt{font:700 19px system-ui,sans-serif;fill:#0f172a}.bs{font:400 13px system-ui,sans-serif;fill:#64748b}
+    .uit{font:700 25px system-ui,sans-serif;fill:white}.uis{font:400 14px system-ui,sans-serif;fill:#e0f2fe}
+    .e{stroke:#64748b;stroke-width:2.2;fill:none;marker-end:url(#a)}.l{font:600 12px system-ui,sans-serif;fill:#475569}
+  </style>
+</defs>
+<rect width="1200" height="720" rx="24" fill="white"/>
+<text x="600" y="52" text-anchor="middle" class="t">FIWARE UI Architecture</text>
+<text x="600" y="80" text-anchor="middle" class="st">Centralized administration and observability for FIWARE-based environments</text>
+
+<!-- User -->
+<g filter="url(#s)">
+  <rect x="465" y="115" width="270" height="76" rx="16" fill="#f8fafc" stroke="#cbd5e1"/>
+  <circle cx="505" cy="153" r="17" fill="#dbeafe"/><circle cx="505" cy="147" r="6" fill="#2563eb"/>
+  <path d="M493 166c4-10 20-10 24 0" fill="#2563eb"/>
+  <text x="535" y="147" class="bt">User / Administrator</text><text x="535" y="170" class="bs">Browser access</text>
+</g>
+<path d="M600 191V250" class="e"/><text x="622" y="225" class="l">HTTPS</text>
+
+<!-- UI -->
+<g filter="url(#s)">
+  <rect x="390" y="255" width="420" height="112" rx="22" fill="url(#g)"/>
+  <rect x="416" y="280" width="54" height="42" rx="9" fill="white" opacity=".16"/>
+  <rect x="428" y="299" width="7" height="15" rx="2" fill="white"/><rect x="440" y="290" width="7" height="24" rx="2" fill="white"/><rect x="452" y="295" width="7" height="19" rx="2" fill="white"/>
+  <text x="495" y="302" class="uit">FIWARE UI</text>
+  <text x="495" y="328" class="uis">Streamlit operations &amp; administration dashboard</text>
+  <text x="495" y="350" class="uis">Management · Inspection · Monitoring</text>
+</g>
+
+<!-- Fanout -->
+<path d="M600 367V420H140V470" class="e"/>
+<path d="M600 420H370V470" class="e"/>
+<path d="M600 420V470" class="e"/>
+<path d="M600 420H830V470" class="e"/>
+<path d="M600 420H1060V470" class="e"/>
+
+<!-- Service boxes -->
+<g filter="url(#s)">
+  <rect x="45" y="475" width="190" height="100" rx="17" fill="#f8fafc" stroke="#bfdbfe"/>
+  <text x="140" y="515" text-anchor="middle" class="bt">Orion</text>
+  <text x="140" y="540" text-anchor="middle" class="bs">Context Broker</text>
+  <text x="140" y="561" text-anchor="middle" class="bs">REST / NGSI-v2</text>
+
+  <rect x="275" y="475" width="190" height="100" rx="17" fill="#f8fafc" stroke="#bfdbfe"/>
+  <text x="370" y="515" text-anchor="middle" class="bt">IoT Agent</text>
+  <text x="370" y="540" text-anchor="middle" class="bs">Device provisioning</text>
+  <text x="370" y="561" text-anchor="middle" class="bs">REST API</text>
+
+  <rect x="505" y="475" width="190" height="100" rx="17" fill="#f8fafc" stroke="#bfdbfe"/>
+  <text x="600" y="515" text-anchor="middle" class="bt">QuantumLeap</text>
+  <text x="600" y="540" text-anchor="middle" class="bs">QL Proxy / Metrics</text>
+  <text x="600" y="561" text-anchor="middle" class="bs">HTTP API</text>
+
+  <rect x="735" y="475" width="190" height="100" rx="17" fill="#f8fafc" stroke="#99f6e4"/>
+  <text x="830" y="515" text-anchor="middle" class="bt">CrateDB</text>
+  <text x="830" y="540" text-anchor="middle" class="bs">Persisted context data</text>
+  <text x="830" y="561" text-anchor="middle" class="bs">HTTP / SQL API</text>
+
+  <rect x="965" y="475" width="190" height="100" rx="17" fill="#f8fafc" stroke="#99f6e4"/>
+  <text x="1060" y="515" text-anchor="middle" class="bt">MQTT</text>
+  <text x="1060" y="540" text-anchor="middle" class="bs">Broker / Bridge</text>
+  <text x="1060" y="561" text-anchor="middle" class="bs">MQTT</text>
+</g>
+
+<!-- Portainer -->
+<path d="M600 575V620" class="e"/>
+<g filter="url(#s)">
+  <rect x="455" y="625" width="290" height="70" rx="16" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="600" y="655" text-anchor="middle" class="bt">Portainer / Docker</text>
+  <text x="600" y="679" text-anchor="middle" class="bs">Container operations via HTTP API</text>
+</g>
+</svg>

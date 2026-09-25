@@ -1,31 +1,259 @@
 # FIWARE UI
 
-A Streamlit-based administration dashboard for operating and monitoring a FIWARE stack, including Orion Context Broker, IoT Agent, and CrateDB
+<p align="center">
+  <img src="fiware_logo.png" alt="FIWARE UI" width="220">
+</p>
+
+A lightweight **operations and administration dashboard for FIWARE**, built with Streamlit.
+
+FIWARE UI provides a single web interface for common operational tasks across a FIWARE stack, including **Orion Context Broker, IoT Agent, QuantumLeap, CrateDB, MQTT, and Portainer**.
+
+Instead of switching between `curl`, database consoles, monitoring tools, MQTT clients, and container management interfaces, FIWARE UI brings frequently used administration and observability workflows together in one place.
+
+---
 
 ## Features
 
-- System architecture overview
-- Entity search, inspection, editing, and deletion
-- Service group management
-- Orion subscription management
-- CrateDB query and preview tools
-- Orion and QuantumLeap Proxy metrics
-- Service migration tools
-- MQTT broker monitoring
-- Docker and Portainer integration
-- Authenticated dashboard access
+| Area               | Capabilities                                       |
+| ------------------ | -------------------------------------------------- |
+| **Architecture**   | Visual overview of the connected FIWARE components |
+| **Entities**       | Search, inspect, edit, and delete Orion entities   |
+| **IoT Agent**      | Inspect and manage service groups                  |
+| **Subscriptions**  | View and manage Orion subscriptions                |
+| **CrateDB**        | Query and preview persisted FIWARE data            |
+| **Metrics**        | Monitor Orion and QuantumLeap Proxy metrics        |
+| **Migration**      | Migrate FIWARE service data between environments   |
+| **MQTT**           | Monitor MQTT broker and bridge information         |
+| **Portainer**      | Access Docker and Portainer-related operations     |
+| **Authentication** | Protect dashboard access with authenticated login  |
+
+---
+
+## Why FIWARE UI?
+
+Operating a FIWARE environment often involves several independent tools and APIs:
+
+```text
+Orion Context Broker ──┐
+IoT Agent ─────────────┤
+QuantumLeap ───────────┤
+CrateDB ───────────────┼──► FIWARE UI
+MQTT ──────────────────┤       │
+Portainer / Docker ────┘       ▼
+                         One web interface
+```
+
+FIWARE UI is designed to simplify these recurring operational tasks without replacing the underlying FIWARE components.
+
+Typical use cases include:
+
+* inspecting entity data without manually creating REST requests
+* checking IoT Agent service groups
+* managing Orion subscriptions
+* querying historical data in CrateDB
+* monitoring application and persistence metrics
+* inspecting MQTT-related information
+* performing controlled service migrations
+* accessing operational information from a central dashboard
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    UI["FIWARE UI<br/>Streamlit"]
+
+    ORION["Orion Context Broker"]
+    IOTA["IoT Agent"]
+    QL["QuantumLeap / QL Proxy"]
+    CRATE["CrateDB"]
+    MQTT["MQTT Broker"]
+    PORTAINER["Portainer"]
+
+    UI --> ORION
+    UI --> IOTA
+    UI --> QL
+    UI --> CRATE
+    UI --> MQTT
+    UI --> PORTAINER
+```
+
+The dashboard communicates with the configured services through their HTTP APIs and MQTT interfaces.
+
+---
 
 ## Tech Stack
 
-- Python 3.12+
-- Streamlit
-- streamlit-authenticator
-- requests
-- pandas
-- matplotlib
-- graphviz
-- paho-mqtt
-- uv for Python and dependency management
+* **Python 3.13+**
+* **Streamlit**
+* **streamlit-authenticator**
+* **requests**
+* **pandas**
+* **matplotlib**
+* **Graphviz**
+* **paho-mqtt**
+* **uv** for Python and dependency management
+* **Docker** for containerized deployment
+
+---
+
+## Prerequisites
+
+Before running FIWARE UI, make sure you have:
+
+* Python 3.13 or newer
+* `uv`
+* access to the FIWARE services you want to manage
+* valid dashboard authentication secrets
+
+Docker is optional and only required for containerized deployment.
+
+---
+
+## Quick Start
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/sKuvent/fiware-ui.git
+cd fiware-ui
+```
+
+### 2. Install Python
+
+The project requires Python 3.13 or newer.
+
+Using `uv`:
+
+```bash
+uv python install 3.13
+```
+
+### 3. Install dependencies
+
+```bash
+uv sync --locked
+```
+
+This creates a local `.venv` and installs the dependency versions defined in `uv.lock`.
+
+### 4. Configure the environment
+
+Copy the example configuration:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and configure authentication and FIWARE service endpoints.
+
+### 5. Load the environment
+
+On Linux or macOS:
+
+```bash
+set -a
+source .env
+set +a
+```
+
+### 6. Start FIWARE UI
+
+```bash
+uv run streamlit run fiware_ui.py \
+  --server.port=8501 \
+  --server.address=0.0.0.0
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
+
+---
+
+## Configuration
+
+FIWARE UI is configured through environment variables.
+
+### Authentication
+
+| Variable                        | Description                                            |
+| ------------------------------- | ------------------------------------------------------ |
+| `DASHBOARD_ADMIN_PASSWORD_HASH` | bcrypt password hash used for dashboard authentication |
+| `DASHBOARD_COOKIE_KEY`          | Secret key used for authentication cookies             |
+| `DASHBOARD_ADMIN_EMAIL`         | Administrator email address                            |
+
+Example:
+
+```env
+DASHBOARD_ADMIN_PASSWORD_HASH=<bcrypt-hash>
+DASHBOARD_COOKIE_KEY=<long-random-secret>
+DASHBOARD_ADMIN_EMAIL=admin@example.com
+```
+
+### FIWARE Services
+
+| Variable          | Default example         | Description                   |
+| ----------------- | ----------------------- | ----------------------------- |
+| `ORION_URL`       | `http://localhost:1026` | Orion Context Broker endpoint |
+| `IOTA_URL`        | `http://localhost:4041` | IoT Agent endpoint            |
+| `CRATE_URL`       | `http://localhost:4200` | CrateDB endpoint              |
+| `MQTT_BROKER_URL` | `mqtt://localhost:1883` | MQTT broker                   |
+| `QL_PROXY_URL`    | `http://localhost:8080` | QuantumLeap Proxy endpoint    |
+| `PORTAINER_URL`   | `http://localhost:9000` | Portainer endpoint            |
+
+### FIWARE Tenant
+
+| Variable             | Default example | Description                     |
+| -------------------- | --------------- | ------------------------------- |
+| `FIWARE_SERVICE`     | `smartenergy`   | FIWARE service / tenant         |
+| `FIWARE_SERVICEPATH` | `/`             | FIWARE service path             |
+| `REQUEST_TIMEOUT`    | `20`            | HTTP request timeout in seconds |
+
+Example:
+
+```env
+ORION_URL=http://localhost:1026
+IOTA_URL=http://localhost:4041
+CRATE_URL=http://localhost:4200
+MQTT_BROKER_URL=mqtt://localhost:1883
+QL_PROXY_URL=http://localhost:8080
+PORTAINER_URL=http://localhost:9000
+
+FIWARE_SERVICE=smartenergy
+FIWARE_SERVICEPATH=/
+REQUEST_TIMEOUT=20
+```
+
+---
+
+## Docker
+
+A Dockerfile is included for containerized deployment.
+
+### Build
+
+```bash
+docker build -t fiware-ui .
+```
+
+### Run
+
+```bash
+docker run \
+  --env-file .env \
+  --publish 8501:8501 \
+  fiware-ui
+```
+
+The container exposes port `8501` and includes a Streamlit health check.
+
+The image runs the application as a non-root user.
+
+---
 
 ## Project Structure
 
@@ -35,7 +263,6 @@ fiware-ui/
 ├── fiware_tool.py
 ├── pyproject.toml
 ├── uv.lock
-├── .python-version
 ├── Dockerfile
 ├── .env.example
 ├── fiware_logo.png
@@ -51,181 +278,77 @@ fiware-ui/
     └── tab_info.py
 ```
 
-## Requirements
+### Main Components
 
-- `uv`
-- Python 3.12 or newer
-- Reachable FIWARE services
-- Valid dashboard authentication secrets
-- Graphviz system package, depending on the operating system
-- Docker and Docker Compose for container-based deployment
+`fiware_ui.py`
+: Streamlit application entry point and dashboard setup.
 
-Python can be installed and managed directly through `uv`.
+`fiware_tool.py`
+: Shared FIWARE-related functionality and service communication.
 
-## Installation
+`ui/`
+: Individual dashboard views and operational modules.
 
-Clone the repository:
-
-```bash
-git clone <repository-url>
-cd fiware-ui
-```
-
-Install the required Python version:
-
-```bash
-uv python install 3.12
-```
-
-Synchronize the project environment:
-
-```bash
-uv sync
-```
-
-This creates a local `.venv` environment and installs the dependency versions defined in `uv.lock`.
-
-## Environment Variables
-
-Copy the example configuration:
-
-```bash
-cp .env.example .env
-```
-
-Required authentication variables:
-
-```env
-DASHBOARD_ADMIN_PASSWORD_HASH=<bcrypt-password-hash>
-DASHBOARD_COOKIE_KEY=<long-random-secret>
-DASHBOARD_ADMIN_EMAIL=admin@example.com
-```
-
-Optional service configuration:
-
-```env
-ORION_URL=http://orion:1026
-IOTA_URL=http://iot-agent:4041
-CRATE_URL=http://crate:4200
-MQTT_BROKER_URL=mqtt://mqtt:1883
-QL_PROXY_URL=http://quantumleap-proxy:4300
-PORTAINER_URL=http://portainer:9000
-
-FIWARE_SERVICE=openiot
-FIWARE_SERVICEPATH=/
-REQUEST_TIMEOUT=10
-```
-
-Load the environment variables on Linux or macOS:
-
-```bash
-set -a
-source .env
-set +a
-```
-
-## Running Locally
-
-Start the Streamlit application through `uv`:
-
-```bash
-uv run streamlit run fiware_ui.py \
-  --server.port=8501 \
-  --server.address=0.0.0.0
-```
-
-Open the dashboard at:
-
-```text
-http://localhost:8501
-```
-
-Using `uv run` ensures that the command is executed inside the project environment with the locked dependency versions.
+---
 
 ## Dependency Management
 
-Add a production dependency:
+The project uses `uv` and a committed lockfile for reproducible installations.
+
+Install the locked environment:
+
+```bash
+uv sync --locked
+```
+
+Add a dependency:
 
 ```bash
 uv add <package>
 ```
 
-Add a development dependency:
-
-```bash
-uv add --dev <package>
-```
-
-Remove a dependency:
-
-```bash
-uv remove <package>
-```
-
-Synchronize the environment after pulling changes:
-
-```bash
-uv sync
-```
-
-Update all dependencies:
+Update dependencies:
 
 ```bash
 uv lock --upgrade
 uv sync
 ```
 
-Check that `pyproject.toml` and `uv.lock` are synchronized without modifying the lockfile:
+Verify the lockfile:
 
 ```bash
 uv lock --check
 ```
 
-The generated `uv.lock` file must be committed to the repository. The `.venv` directory must not be committed.
+Whenever dependencies change, commit both `pyproject.toml` and `uv.lock`.
 
-## Docker
+Do not commit `.venv`.
 
-Build the container:
+---
 
-```bash
-docker build -t fiware-ui .
-```
+## Security
 
-Run the container:
+FIWARE UI can expose administrative and destructive operations. Treat access to the dashboard accordingly.
 
-```bash
-docker run \
-  --env-file .env \
-  --publish 8501:8501 \
-  fiware-ui
-```
+Recommended production practices:
 
-Alternatively, start the dashboard through Docker Compose:
+* never commit `.env` files or credentials
+* never commit `DASHBOARD_ADMIN_PASSWORD_HASH`
+* never commit `DASHBOARD_COOKIE_KEY`
+* use environment variables or a secrets manager
+* restrict network access to trusted users and networks
+* place the application behind an HTTPS reverse proxy
+* keep Streamlit XSRF protection enabled
+* use dedicated service accounts where possible
+* use a restricted CrateDB user instead of an unrestricted administrative account
+* review entity deletion, migration, and SQL functionality before enabling production access
+* limit Portainer permissions to the operations required by the dashboard
 
-```bash
-docker compose up -d fiware-ui --build
-```
+---
 
-Check the container logs:
+## Development
 
-```bash
-docker compose logs -f fiware-ui
-```
-
-## Security Notes
-
-- Never commit `.env` or real credentials.
-- Never commit `DASHBOARD_ADMIN_PASSWORD_HASH` or `DASHBOARD_COOKIE_KEY`.
-- Use environment variables or a secret manager for credentials.
-- Restrict network access to the dashboard in production.
-- Place the dashboard behind an HTTPS reverse proxy.
-- Keep Streamlit XSRF protection enabled.
-- Use a restricted CrateDB user where possible.
-- Review destructive operations such as entity deletion, migration, and arbitrary SQL execution before enabling production access.
-
-## Development Workflow
-
-Create a feature branch:
+Create a dedicated branch:
 
 ```bash
 git checkout -b feature/<feature-name>
@@ -237,34 +360,32 @@ Install the locked environment:
 uv sync --locked
 ```
 
-Run the application:
+Start the application:
 
 ```bash
 uv run streamlit run fiware_ui.py
 ```
 
-Before committing dependency changes, verify that the lockfile is current:
+Before committing dependency changes:
 
 ```bash
 uv lock --check
 ```
 
-Commit both files when dependencies change:
+Keep changes focused and update the documentation whenever configuration, functionality, or dependencies change.
 
-```text
-pyproject.toml
-uv.lock
-```
-
-## Contributing
-
-1. Create a focused feature or bug-fix branch.
-2. Keep changes small and reviewable.
-3. Test changes against a FIWARE environment.
-4. Update the documentation when configuration or dependencies change.
-5. Include screenshots for user-interface changes.
-6. Open a pull request with a concise description.
+---
 
 ## License
 
-This project is licensed under the Apache License 2.0. See `LICENSE` for details.
+This project is licensed under the **Apache License 2.0**.
+
+See `LICENSE` for details.
+
+---
+
+## Disclaimer
+
+FIWARE UI is an independent administration dashboard for FIWARE-based environments.
+
+Operations such as entity deletion, database queries, service migration, and container management can modify production systems. Review configuration and permissions carefully before deploying the dashboard in a production environment.

@@ -5,7 +5,7 @@ description = "Streamlit dashboard for operating and monitoring a FIWARE stack"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "streamlit==1.56.0",
+    "streamlit==1.64.0",
     "streamlit-authenticator==0.4.2",
     "requests==2.33.1",
     "pandas==3.0.2",

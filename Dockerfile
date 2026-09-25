@@ -1,4 +1,4 @@
-FROM python:3.13-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 # Pin the uv version instead of using latest in production.
 COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /uvx /bin/

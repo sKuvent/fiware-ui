@@ -8,7 +8,7 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 FIWARE_LOGO_URL = "https://www.fiware.org/custom/brand-guide/img/logo/fiware/primary/png/logo-fiware.png"
-LOGO_FILENAME = "fiware_logo.png"
+LOGO_FILENAME = "fiware_ui_logo.png"
 
 # Single source of truth for all system health checks: (client method name, display label).
 # Used both for the cached status probe and the "run now" button, so they never drift apart.

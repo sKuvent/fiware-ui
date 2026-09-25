@@ -1,5 +1,15 @@
 # FIWARE UI
 
+<p align="center">
+  <img src="fiware_ui_logo.png" alt="FIWARE UI" width="220">
+</p>
+
+<p align="center">
+  <a href="https://github.com/sKuvent/fiware-ui/actions/workflows/ci.yml">
+    <img src="https://github.com/sKuvent/fiware-ui/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI">
+  </a>
+</p>
+
 A lightweight **operations and administration dashboard for FIWARE**, built with Streamlit.
 
 FIWARE UI provides a single web interface for common operational tasks across a FIWARE stack, including **Orion Context Broker, IoT Agent, QuantumLeap, CrateDB, MQTT, and Portainer**.
@@ -56,23 +66,32 @@ Typical use cases include:
 
 ## Architecture
 
+FIWARE UI acts as a centralized administration and observability layer for the
+services of a FIWARE-based environment.
+
 ```mermaid
-flowchart TD
+flowchart TB
+    USER["User / Administrator"]
     UI["FIWARE UI<br/>Streamlit"]
 
-    ORION["Orion Context Broker"]
-    IOTA["IoT Agent"]
-    QL["QuantumLeap / QL Proxy"]
-    CRATE["CrateDB"]
-    MQTT["MQTT Broker"]
-    PORTAINER["Portainer"]
+    subgraph FIWARE["FIWARE Platform"]
+        ORION["Orion Context Broker"]
+        IOTA["IoT Agent"]
+        QL["QuantumLeap / QL Proxy"]
+        CRATE["CrateDB"]
+        MQTT["MQTT Broker / Bridge"]
+    end
 
-    UI --> ORION
-    UI --> IOTA
-    UI --> QL
-    UI --> CRATE
-    UI --> MQTT
-    UI --> PORTAINER
+    PORTAINER["Portainer / Docker"]
+
+    USER -->|"HTTPS / Browser"| UI
+
+    UI -->|"REST API"| ORION
+    UI -->|"REST API"| IOTA
+    UI -->|"HTTP / SQL API"| CRATE
+    UI -->|"Metrics API"| QL
+    UI -->|"MQTT"| MQTT
+    UI -->|"HTTP API"| PORTAINER
 ```
 
 The dashboard communicates with the configured services through their HTTP APIs and MQTT interfaces.
@@ -187,6 +206,32 @@ Example:
 ```env
 DASHBOARD_ADMIN_PASSWORD_HASH=<bcrypt-hash>
 DASHBOARD_COOKIE_KEY=<long-random-secret>
+DASHBOARD_ADMIN_EMAIL=admin@example.com
+```
+
+Generate a bcrypt password hash:
+
+```bash
+uv run python - <<'PY'
+import bcrypt
+import getpass
+
+password = getpass.getpass("Admin password: ")
+print(bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode())
+PY
+```
+
+Generate a random cookie secret:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Then add both values to .env:
+
+```bash
+DASHBOARD_ADMIN_PASSWORD_HASH='$2b$12$...'
+DASHBOARD_COOKIE_KEY='...'
 DASHBOARD_ADMIN_EMAIL=admin@example.com
 ```
 
